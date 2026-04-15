@@ -23,6 +23,18 @@ if [ $? -eq 0 ]; then
   echo "构建成功！"
   echo "构建产物位于 dist 目录"
   echo "可以将 dist 目录的内容部署到静态网站托管服务，如 GitHub Pages、GitLab Pages 等"
+  
+  # 复制dist目录到docs目录
+  echo "复制dist目录到docs目录..."
+  if [ -d "docs" ]; then
+    rm -rf docs/*
+  else
+    mkdir -p docs
+  fi
+  cp -r dist/* docs/
+  echo "复制完成！"
+  echo "docs目录内容："
+  ls -la docs
 else
   echo "构建失败，请检查错误信息"
   exit 1
