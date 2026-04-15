@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生成训练记录模拟数据</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f8f9fa;
+    }
+    h1 {
+      color: #003153;
+      text-align: center;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    button {
+      background-color: #003153;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 0;
+    }
+    button:hover {
+      opacity: 0.8;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>生成训练记录模拟数据</h1>
+    <p>点击下方按钮生成约3个月的训练记录模拟数据，并存储到浏览器的localStorage中。</p>
+    <button onclick="generateMockData()">生成并存储模拟数据</button>
+    <button onclick="clearMockData()">清空数据</button>
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    // 训练类型
+    const trainingTypes = [
+      { value: 'running', label: '跑步', emoji: '🏃🏻' },
+      { value: 'strength', label: '力量', emoji: '💪🏻' },
+      { value: 'rest', label: '休息', emoji: '😴' }
+    ];
+
+    // 生成mock数据
+    function generateMockData() {
+      const mockData = [];
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 3); // 3个月前
+      const endDate = new Date();
+      const weightStart = 75.0;
+      let currentWeight = weightStart;
+
+      // 生成每天的记录
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        // 随机生成训练类型
+        const randomType = trainingTypes[Math.floor(Math.random() * trainingTypes.length)];
+        
+        // 随机生成训练详情
+        let detail = '';
+        if (randomType.value === 'running') {
+          detail = `${(Math.random() * 5 + 2).toFixed(1)}km`;
+        } else if (randomType.value === 'strength') {
+          detail = `${Math.floor(Math.random() * 30 + 20)}min`;
+        }
+
+        // 每3天记录一次体重，体重有轻微波动
+        let weight = null;
+        if (d.getDate() % 3 === 0) {
+          currentWeight += (Math.random() * 0.6 - 0.3);
+          weight = parseFloat(currentWeight.toFixed(1));
+        }
+
+        // 格式化日期为YYYY-MM-DD
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        // 添加记录
+        mockData.push({
+          id: `mock-${dateStr}`,
+          date: dateStr,
+          type: randomType.value,
+          detail,
+          weight,
+          completed: Math.random() > 0.1 // 90%的概率为完成状态
+        });
+      }
+
+      // 存储到localStorage
+      localStorage.setItem('training-records', JSON.stringify(mockData));
+
+      // 显示结果
+      document.getElementById('result').textContent = `
+已生成并存储 ${mockData.length} 条训练记录。
+
+数据范围：${mockData[0].date} 到 ${mockData[mockData.length - 1].date}
+
+存储键名：training-records
+
+现在你可以访问训练计划应用查看这些数据了！
+      `;
+    }
+
+    // 清空数据
+    function clearMockData() {
+      localStorage.removeItem('training-records');
+      document.getElementById('result').textContent = '已清空训练记录数据。';
+    }
+  </script>
+</body>
+</html>
