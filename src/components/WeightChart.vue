@@ -7,7 +7,6 @@
           id="height" 
           type="number" 
           v-model="height" 
-          @blur="handleHeightBlur"
           @keyup.enter="handleHeightBlur"
           placeholder="请输入身高"
           ref="heightInput"
