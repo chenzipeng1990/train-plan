@@ -6,12 +6,12 @@
         <input 
           id="height" 
           type="number" 
-          v-model="height" 
+          v-model="tempHeight" 
           @keyup.enter="handleHeightBlur"
           placeholder="请输入身高"
           ref="heightInput"
         />
-        <button v-if="height" class="btn btn-secondary btn-save" @click="handleHeightBlur">
+        <button v-if="tempHeight" class="btn btn-secondary btn-save" @click="handleHeightBlur">
           确定
         </button>
       </div>
@@ -25,7 +25,7 @@
           <span class="status" :class="bmiLevel">{{ bmiStatus }}</span>
         </div>
         <div class="bmi-suggestion">{{ bmiSuggestion }}</div>
-        <button v-if="height && !showHeightInput" class="btn btn-edit-height" @click="showHeightInput = true">
+        <button v-if="height && !showHeightInput" class="btn btn-edit-height" @click="handleEditHeight">
           修改身高
         </button>
       </div>
@@ -113,6 +113,8 @@ export default {
     
     // 身高（从localStorage读取）
     const height = ref(parseFloat(localStorage.getItem('user-height')) || '');
+    // 临时身高输入值（用于编辑时暂存）
+    const tempHeight = ref('');
     
     // 当前体重（最新记录的值）
     const currentWeight = computed(() => {
@@ -191,12 +193,20 @@ export default {
       return false;
     };
     
+    // 处理点击修改身高按钮
+    const handleEditHeight = () => {
+      tempHeight.value = height.value;
+      showHeightInput.value = true;
+    };
+
     // 处理身高输入完成
     const handleHeightBlur = () => {
-      if (height.value) {
-        if (isValidHeight(height.value)) {
+      if (tempHeight.value) {
+        if (isValidHeight(tempHeight.value)) {
+          height.value = tempHeight.value;
           saveHeight();
           showHeightInput.value = false;
+          tempHeight.value = '';
         } else {
           alert('请输入有效的身高（50-250cm）');
           if (heightInput.value) {
@@ -389,6 +399,7 @@ export default {
       hasData,
       updateChartData,
       height,
+      tempHeight,
       bmi,
       bmiLevel,
       bmiStatus,
@@ -396,7 +407,8 @@ export default {
       saveHeight,
       showHeightInput,
       heightInput,
-      handleHeightBlur
+      handleHeightBlur,
+      handleEditHeight
     };
   }
 };
