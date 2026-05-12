@@ -2,7 +2,7 @@
  * 路由配置
  */
 
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
 import WeightChartView from '../views/WeightChartView.vue';
 
@@ -20,7 +20,7 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes
 });
 
