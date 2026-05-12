@@ -125,9 +125,35 @@ export default {
       }
     };
     
+    // 验证表单数据
+    const validateForm = () => {
+      const { date, type, weight } = formData.value;
+      
+      if (!date) {
+        alert('请选择日期');
+        return false;
+      }
+      
+      if (!type) {
+        alert('请选择训练类型');
+        return false;
+      }
+      
+      if (weight !== null && weight !== undefined) {
+        const weightNum = parseFloat(weight);
+        if (isNaN(weightNum) || weightNum <= 0 || weightNum > 300) {
+          alert('请输入有效的体重（1-300kg）');
+          return false;
+        }
+      }
+      
+      return true;
+    };
+    
     // 处理表单提交
     const handleSubmit = () => {
-      // 自动补充单位
+      if (!validateForm()) return;
+      
       const formDataWithUnit = {
         ...formData.value,
         detail: addUnitByType(formData.value.type, formData.value.detail)

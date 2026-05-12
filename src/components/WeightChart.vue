@@ -1,5 +1,39 @@
 <template>
   <div class="weight-chart">
+    <div class="bmi-section">
+      <div v-if="showHeightInput || !height" class="bmi-input">
+        <label for="height">身高 (cm)</label>
+        <input 
+          id="height" 
+          type="number" 
+          v-model="height" 
+          @blur="handleHeightBlur"
+          @keyup.enter="handleHeightBlur"
+          placeholder="请输入身高"
+          ref="heightInput"
+        />
+        <button v-if="height" class="btn btn-secondary btn-save" @click="handleHeightBlur">
+          确定
+        </button>
+      </div>
+      <div v-if="bmi !== null" class="bmi-info">
+        <div class="bmi-value">
+          <span class="label">当前BMI</span>
+          <span class="value" :class="bmiLevel">{{ bmi.toFixed(1) }}</span>
+        </div>
+        <div class="bmi-status">
+          <span class="label">健康状况</span>
+          <span class="status" :class="bmiLevel">{{ bmiStatus }}</span>
+        </div>
+        <div class="bmi-suggestion">{{ bmiSuggestion }}</div>
+        <button v-if="height && !showHeightInput" class="btn btn-edit-height" @click="showHeightInput = true">
+          修改身高
+        </button>
+      </div>
+      <div v-else class="bmi-empty">
+        请输入身高以计算BMI
+      </div>
+    </div>
     <div class="chart-controls">
       <div class="form-group">
         <label for="year">年份</label>
@@ -72,6 +106,107 @@ export default {
     // 当前选中的年份和月份
     const selectedYear = ref(dayjs().year());
     const selectedMonth = ref(dayjs().month() + 1);
+    
+    // 是否显示身高输入框
+    const showHeightInput = ref(false);
+    // 身高输入框引用
+    const heightInput = ref(null);
+    
+    // 身高（从localStorage读取）
+    const height = ref(parseFloat(localStorage.getItem('user-height')) || '');
+    
+    // 当前体重（最新记录的值）
+    const currentWeight = computed(() => {
+      if (props.records.length === 0) return null;
+      const latestRecord = [...props.records]
+        .filter(r => r.weight)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+      return latestRecord ? parseFloat(latestRecord.weight) : null;
+    });
+    
+    // BMI值
+    const bmi = computed(() => {
+      if (!height.value || !currentWeight.value) return null;
+      
+      const heightNum = parseFloat(height.value);
+      const weightNum = parseFloat(currentWeight.value);
+      
+      if (isNaN(heightNum) || isNaN(weightNum)) return null;
+      if (heightNum <= 0 || weightNum <= 0) return null;
+      
+      const heightInMeters = heightNum / 100;
+      if (heightInMeters <= 0) return null;
+      
+      const bmiValue = weightNum / (heightInMeters * heightInMeters);
+      
+      if (isNaN(bmiValue) || !isFinite(bmiValue)) return null;
+      
+      return bmiValue;
+    });
+    
+    // BMI等级
+    const bmiLevel = computed(() => {
+      if (bmi.value === null) return '';
+      if (bmi.value < 18.5) return 'underweight';
+      if (bmi.value < 24) return 'normal';
+      if (bmi.value < 28) return 'overweight';
+      return 'obese';
+    });
+    
+    // BMI状态描述
+    const bmiStatus = computed(() => {
+      if (bmi.value === null) return '';
+      if (bmi.value < 18.5) return '偏瘦';
+      if (bmi.value < 24) return '正常';
+      if (bmi.value < 28) return '超重';
+      return '肥胖';
+    });
+    
+    // BMI建议
+    const bmiSuggestion = computed(() => {
+      if (bmi.value === null) return '';
+      if (bmi.value < 18.5) {
+        return '建议适当增加营养摄入，保持均衡饮食，进行适度的力量训练以增加肌肉量。';
+      }
+      if (bmi.value < 24) {
+        return '体重处于健康范围，请继续保持良好的饮食习惯和运动习惯！';
+      }
+      if (bmi.value < 28) {
+        return '建议控制饮食，减少高热量食物摄入，增加有氧运动如跑步、游泳等。';
+      }
+      return '建议咨询医生制定科学的减重计划，配合合理饮食和规律运动。';
+    });
+    
+    // 验证身高是否有效
+    const isValidHeight = (h) => {
+      const heightNum = parseFloat(h);
+      return !isNaN(heightNum) && heightNum >= 50 && heightNum <= 250;
+    };
+    
+    // 保存身高到localStorage
+    const saveHeight = () => {
+      if (isValidHeight(height.value)) {
+        localStorage.setItem('user-height', height.value);
+        return true;
+      }
+      return false;
+    };
+    
+    // 处理身高输入完成
+    const handleHeightBlur = () => {
+      if (height.value) {
+        if (isValidHeight(height.value)) {
+          saveHeight();
+          showHeightInput.value = false;
+        } else {
+          alert('请输入有效的身高（50-250cm）');
+          if (heightInput.value) {
+            heightInput.value.focus();
+          }
+        }
+      }
+    };
+    
     // 图表数据
     const chartData = ref({
       labels: [],
@@ -253,7 +388,16 @@ export default {
       chartOptions,
       chartKey,
       hasData,
-      updateChartData
+      updateChartData,
+      height,
+      bmi,
+      bmiLevel,
+      bmiStatus,
+      bmiSuggestion,
+      saveHeight,
+      showHeightInput,
+      heightInput,
+      handleHeightBlur
     };
   }
 };
@@ -268,6 +412,130 @@ export default {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   border: 1px solid #f5b70a; /* 范思哲黄 - 副色 */
   min-height: 400px;
+}
+
+.bmi-section {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #f5b70a;
+}
+
+.bmi-input {
+  margin-bottom: 15px;
+}
+
+.bmi-input label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #003153;
+}
+
+.bmi-input input {
+  width: 150px;
+  padding: 8px;
+  border: 1px solid #f5b70a;
+  border-radius: 4px;
+  font-size: 16px;
+  background-color: #ffffff;
+  color: #003153;
+}
+
+.bmi-input input:focus {
+  outline: none;
+  border-color: #003153;
+  box-shadow: 0 0 0 2px rgba(0, 49, 83, 0.1);
+}
+
+.bmi-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+}
+
+.bmi-value,
+.bmi-status {
+  display: flex;
+  flex-direction: column;
+}
+
+.bmi-value .label,
+.bmi-status .label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.bmi-value .value {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.bmi-status .status {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.bmi-value .value.underweight,
+.bmi-status .status.underweight {
+  color: #2196F3;
+}
+
+.bmi-value .value.normal,
+.bmi-status .status.normal {
+  color: #4CAF50;
+}
+
+.bmi-value .value.overweight,
+.bmi-status .status.overweight {
+  color: #ff9800;
+}
+
+.bmi-value .value.obese,
+.bmi-status .status.obese {
+  color: #f44336;
+}
+
+.bmi-suggestion {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px;
+  background: #ffffff;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+  border-left: 3px solid #f5b70a;
+}
+
+.bmi-empty {
+  color: #999;
+  font-style: italic;
+  padding: 10px 0;
+}
+
+.bmi-input .btn-save {
+  margin-left: 10px;
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.btn-edit-height {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: #666;
+  color: white;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-edit-height:hover {
+  background: #003153;
 }
 
 .chart-controls {

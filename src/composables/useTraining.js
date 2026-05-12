@@ -84,33 +84,78 @@ export function useTraining() {
     }, 500);
   };
 
+  // 验证记录数据
+  const validateRecord = (record) => {
+    if (!record || typeof record !== 'object') {
+      throw new Error('无效的记录数据');
+    }
+    
+    if (!record.date || !dayjs(record.date).isValid()) {
+      throw new Error('无效的日期格式');
+    }
+    
+    if (!record.type) {
+      throw new Error('请选择训练类型');
+    }
+    
+    const validTypes = trainingTypes.value.map(t => t.value);
+    if (!validTypes.includes(record.type)) {
+      throw new Error('无效的训练类型');
+    }
+    
+    if (record.weight !== null && record.weight !== undefined) {
+      const weight = parseFloat(record.weight);
+      if (isNaN(weight) || weight <= 0 || weight > 300) {
+        throw new Error('体重必须在1-300kg之间');
+      }
+    }
+    
+    return true;
+  };
+  
   // 添加训练记录
   const addTrainingRecord = (record) => {
-    const newRecord = {
-      id: `record-${Date.now()}`,
-      ...record
-    };
-    // 添加到所有记录的开头
-    allRecords.value.unshift(newRecord);
-    // 保存到本地存储
-    saveRecords(allRecords.value);
-    // 重新加载第一页，确保最新记录显示在最前面
-    loadPage(1);
+    try {
+      validateRecord(record);
+      
+      const newRecord = {
+        id: `record-${Date.now()}`,
+        ...record
+      };
+      allRecords.value.push(newRecord);
+      allRecords.value.sort((a, b) => {
+        return new Date(b.date) - new Date(a.date);
+      });
+      saveRecords(allRecords.value);
+      loadPage(1);
+    } catch (error) {
+      console.error('添加记录失败:', error.message);
+      alert(error.message);
+    }
   };
 
   // 编辑训练记录
   const editTrainingRecord = (id, updatedRecord) => {
-    const index = allRecords.value.findIndex(record => record.id === id);
-    if (index !== -1) {
-      allRecords.value[index] = { ...allRecords.value[index], ...updatedRecord };
-      // 编辑后重新排序，确保日期顺序正确
+    try {
+      const index = allRecords.value.findIndex(record => record.id === id);
+      if (index === -1) {
+        throw new Error('找不到要编辑的记录');
+      }
+      
+      const existingRecord = allRecords.value[index];
+      const mergedRecord = { ...existingRecord, ...updatedRecord };
+      
+      validateRecord(mergedRecord);
+      
+      allRecords.value[index] = mergedRecord;
       allRecords.value.sort((a, b) => {
         return new Date(b.date) - new Date(a.date);
       });
-      // 保存到本地存储
       saveRecords(allRecords.value);
-      // 重新加载当前页
       loadPage(1);
+    } catch (error) {
+      console.error('编辑记录失败:', error.message);
+      alert(error.message);
     }
   };
 
